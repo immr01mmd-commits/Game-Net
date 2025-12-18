@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Mine Legends</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh}
+.app{width:100%;max-width:420px;background:#020617;border-radius:18px;padding:14px}
+.stats{display:flex;justify-content:space-between;background:#020617;padding:10px;border-radius:12px}
+.mine{width:150px;height:150px;border-radius:50%;background:#22c55e;margin:12px auto;display:flex;justify-content:center;align-items:center;font-size:42px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{flex:1;border:none;border-radius:10px;background:#1e293b;color:white;padding:6px}
+.box{display:none;margin-top:8px}
+.box.active{display:block}
+.card{background:#1e293b;border-radius:12px;padding:10px;margin-bottom:6px}
+.skin{background:#020617;padding:6px;border-radius:8px;margin-top:4px;cursor:pointer}
+.skin.active{background:#22c55e;color:black}
+.gold{color:#FFD700}.silver{color:#C0C0C0}.bronze{color:#CD7F32}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<h3 style="text-align:center">⛏ Mine Legends</h3>
+
+<div class="stats">
+  <div>👤 <span id="playerName"></span></div>
+  <div>💰 <span id="coin">0</span></div>
+</div>
+
+<div class="stats">
+  <div>⭐ Lv <span id="level">0</span></div>
+  <div>⚡ Power <span id="power">1</span></div>
+</div>
+
+<div class="mine" onclick="mine()" id="pick">⛏</div>
+
+<div class="tabs">
+<button onclick="tab('shop')">🏪</button>
+<button onclick="tab('skin')">🎨</button>
+<button onclick="tab('quest')">📜</button>
+<button onclick="tab('rank')">🏆</button>
+<button onclick="tab('daily')">🎁</button>
+</div>
+
+<!-- SHOP -->
+<div id="shop" class="box active">
+<div class="card">Upgrade Power (50) <button onclick="upgrade()">Buy</button></div>
+<div class="card">Auto Mine (200) <button onclick="auto()">Buy</button></div>
+</div>
+
+<!-- SKINS -->
+<div id="skin" class="box">
+<div class="card"><b>👤 Characters</b>
+<div class="skin active" onclick="setChar('👷',this)">👷 Default</div>
+<div class="skin" onclick="buyChar('🧑‍🚀',300,this)">🧑‍🚀 Astronaut</div>
+<div class="skin" onclick="buyChar('🧙‍♂️',600,this)">🧙‍♂️ Wizard</div>
+<div class="skin" onclick="buyChar('🤖',900,this)">🤖 Robot</div>
+<div class="skin" onclick="buyChar('🐉',1200,this)">🐉 Dragon</div>
+</div>
+
+<div class="card"><b>⛏ Pickaxe</b>
+<div class="skin active" onclick="setPick('⛏',this)">⛏ Default</div>
+<div class="skin" onclick="buyPick('💎',400,this)">💎 Diamond</div>
+<div class="skin" onclick="buyPick('🔥',700,this)">🔥 Fire</div>
+<div class="skin" onclick="buyPick('⚡',1000,this)">⚡ Thunder</div>
+<div class="skin" onclick="buyPick('🌈',1500,this)">🌈 Rainbow</div>
+</div>
+</div>
+
+<!-- QUEST -->
+<div id="quest" class="box">
+<div class="card">Mine 100 coins <button onclick="claimQuest()">Claim</button></div>
+</div>
+
+<!-- DAILY -->
+<div id="daily" class="box">
+<div class="card">Daily Reward (100) <button onclick="daily()">Claim</button></div>
+</div>
+
+<!-- RANK -->
+<div id="rank" class="box">
+<div class="card">
+<b>🥇🥈🥉 Top Players</b>
+<div id="leaderboard"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready(); tg.expand();
+
+let uid = tg.initDataUnsafe?.user?.id || "guest";
+
+let d = JSON.parse(localStorage.getItem("mine_"+uid)) || {
+name: prompt("اسم پلیر؟"),
+coin:0,level:0,power:1,
+char:'👷',pick:'⛏',
+chars:['👷'],picks:['⛏'],
+lastDaily:0
+};
+
+function save(){localStorage.setItem("mine_"+uid,JSON.stringify(d));
+coin.innerText=d.coin;level.innerText=d.level;power.innerText=d.power;
+playerName.innerText=d.name;pick.innerText=d.pick;}
+
+function mine(){d.coin+=d.power;save();updateRank();}
+function upgrade(){if(d.coin>=50){d.coin-=50;d.power++;}}
+function auto(){setInterval(()=>{d.coin+=d.power;save();},2000)}
+
+function buyChar(c,p,e){if(d.coin>=p&&!d.chars.includes(c)){d.coin-=p;d.chars.push(c);setChar(c,e)}}
+function setChar(c,e){d.char=c;document.querySelectorAll(".skin").forEach(x=>x.classList.remove("active"));e.classList.add("active")}
+function buyPick(p,pr,e){if(d.coin>=pr&&!d.picks.includes(p)){d.coin-=pr;d.picks.push(p);setPick(p,e)}}
+function setPick(p,e){d.pick=p;pick.innerText=p;document.querySelectorAll(".skin").forEach(x=>x.classList.remove("active"));e.classList.add("active")}
+
+function daily(){let now=Date.now();if(now-d.lastDaily>86400000){d.coin+=100;d.lastDaily=now;alert("🎁 گرفتی!");save()}}
+
+function claimQuest(){if(d.coin>=100){alert("قبلا انجام شده")} }
+
+function updateRank(){
+let lb=JSON.parse(localStorage.getItem("lb"))||[];
+lb=lb.filter(x=>x.name!==d.name);
+lb.push({name:d.name,coin:d.coin});
+lb.sort((a,b)=>b.coin-a.coin);
+localStorage.setItem("lb",JSON.stringify(lb));
+leaderboard.innerHTML=lb.slice(0,3).map((p,i)=>`<div class="${i==0?'gold':i==1?'silver':'bronze'}">${p.name}: ${p.coin}</div>`).join("");
+}
+
+function tab(id){document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));document.getElementById(id).classList.add("active")}
+
+save();updateRank();
+</script>
+</body>
+</html>
